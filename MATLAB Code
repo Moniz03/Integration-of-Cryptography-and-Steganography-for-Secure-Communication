@@ -1,0 +1,100 @@
+clc
+clear all
+close all
+warning off
+a=imread('testimage.png'); %File name of the carrier image
+nexttile;
+imshow(a); %Printing of the carrier image
+title('Carrier Image');
+x=imread('SECRET.png'); %File name of the secret image
+nexttile;
+imshow(x); %Printing of the image
+title('Secret Image');
+[r c g]=size(a); %Getting the size of the test image
+x=imresize(x,[r c]); %Resizing the message and carrier signal
+ra=a(:,:,1); %Extracting the red plane of the carrier signal
+ga=a(:,:,2); %Extracting the green plane of the carrier signal
+ba=a(:,:,3); %Extracting the blue plane of the carrier signal
+rx=x(:,:,1); %Extracting the red plane of the message signal
+gx=x(:,:,2); %Extracting the green plane of the message signal
+bx=x(:,:,3); %Extracting the blue plane of the message signal
+sk=uint8(rand(r,c)*255);%Secret key
+rx=bitxor(rx,sk); %Performing BITXOR operation with red plane message signal and the secret key
+gx=bitxor(gx,sk); %Performing BITXOR operation with green plane message signal and the secret key
+bx=bitxor(bx,sk); %Performing BITXOR operation with blue plane message signal and the secret key
+nexttile;
+imshow(cat(3,rx,gx,bx));
+title('Encrypted Secret Message');
+%Extracting and adding the image with carrier for red plane(Encryption)
+for i=1:r
+    for j=1:c
+       nc(i,j)= bitand(ra(i,j),254); %Performing BITAND operation with carrier signal pixels and 254
+       ns(i,j)= bitand(rx(i,j),128); %Performing BITAND operation with message signal pixels and 128
+       ds(i,j)=ns(i,j)/128; %Extracting only the image pixels
+       fr(i,j)=nc(i,j)+ds(i,j); %Adding the extracted image with the carrier
+    end
+end %End of loops
+%Extracting and adding the image with carrier for green plane(Encryption)
+redsteg=fr;
+for i=1:r
+    for j=1:c
+       nc(i,j)= bitand(ga(i,j),254);
+       ns(i,j)= bitand(gx(i,j),128);
+       ds(i,j)=ns(i,j)/128;
+       fr(i,j)=nc(i,j)+ds(i,j);
+    end
+end
+%Extracting and adding the image with carrier for blue plane(Encryption)
+greensteg=fr;
+for i=1:r
+    for j=1:c
+       nc(i,j)= bitand(ba(i,j),254);
+       ns(i,j)= bitand(bx(i,j),128);
+       ds(i,j)=ns(i,j)/128;
+       fr(i,j)=nc(i,j)+ds(i,j);
+    end
+end
+bluesteg=fr;
+finalsteg=cat(3,redsteg,greensteg,bluesteg); %Combining all the extracted images
+%Decryption operation for the reciever's end
+redstegr=finalsteg(:,:,1);
+greenstegr=finalsteg(:,:,2);
+bluestegr=finalsteg(:,:,3);
+nexttile;
+imshow(finalsteg);
+title('Stegmented Image');
+%Extracting the red plane and performing decryption
+for i=1:r
+    for j=1:c
+        nc(i,j)=bitand(redstegr(i,j),1); %BITAND operation of red pixel and 1
+        ms(i,j)=nc(i,j)*128; %Multiplying them with 128
+    end
+end
+recoveredr=ms; %Recovered part
+%Extracting the green plane and performing decryption
+for i=1:r
+    for j=1:c
+        nc(i,j)=bitand(greenstegr(i,j),1); %BITAND operation of green pixel and 1
+        ms(i,j)=nc(i,j)*128;
+    end
+end
+recoveredg=ms; %Recovered part
+%Extracting the blue plane and performing decryption
+for i=1:r
+    for j=1:c
+        nc(i,j)=bitand(bluestegr(i,j),1); %BITAND operation of blue pixel and 1
+        ms(i,j)=nc(i,j)*128;
+    end
+end
+recoveredb=ms; %Recovered part
+output=cat(3,recoveredr,recoveredg,recoveredb); %Concatinating all the recovered output
+nexttile;
+imshow(output); %Dispalying the recovered output
+title('Recovered Encrypted Image from Steganography');
+red_band=bitxor(output(:,:,1),sk); %Decrypting the message of red plane with secret key
+green_band=bitxor(output(:,:,2),sk); %Decrypting the message of green plane with secret key
+blue_band=bitxor(output(:,:,3),sk); %Decrypting the message of blue plane with secret key
+combined=cat(3,red_band,green_band,blue_band); %Concatinating the decrypted images
+nexttile;
+imshow(combined); %Displaying the decrypted image
+title('Decrypted secret message signal');
